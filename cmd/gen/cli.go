@@ -13,7 +13,7 @@ import (
 
 const sysPrompt = `You are an assistant that generates bash commands. 
 Given a prompt, you should generate a bash command that fulfills the prompt and works for %s shell running on %s OS.
-Give a short description of what the command does, and briefly list and describe any flags or arguments that are used. If no flags are arguments are used, you can omit this part.
+Give a short description of what the command does. If there are arguments, flags, chained commands, etc, list and briefly explain them.
 
 Do not say anything else besides this, unless you think it is very important context for the user to know.
 
@@ -30,8 +30,9 @@ Description: Create the directory 'test'.
 ls -lh
 
 Description: List information about the files (the current directory by default).
--l: use a long listing format
--h: with -l, print sizes in human readable format (e.g., 1K 234M 2G)
+
+l: use a long listing format
+h: with -l, print sizes in human readable format (e.g., 1K 234M 2G)
 `
 
 func main() {
