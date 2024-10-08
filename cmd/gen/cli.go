@@ -6,6 +6,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	llama "github.com/webbben/ollama-wrapper"
@@ -41,13 +42,7 @@ func main() {
 		fmt.Println("Usage: bash-gen \"<your-sentence>\"")
 		return
 	}
-
 	userPrompt := os.Args[1]
-
-	client, err := llama.GetClient()
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	// Start spinner
 	done := make(chan bool)
@@ -65,8 +60,12 @@ func main() {
 		}
 	}()
 
-	// get OS and shell
+	client, err := llama.GetClient()
+	if err != nil {
+		log.Fatal(err)
+	}
 
+	// get environment context
 	shell := "bash"
 	if env, ok := os.LookupEnv("SHELL"); !ok {
 		fmt.Println("SHELL environment variable not set. Defaulting to regular bash.")
@@ -74,18 +73,20 @@ func main() {
 		parts := strings.Split(env, "/")
 		shell = parts[len(parts)-1]
 	}
-	fmt.Println("Shell:", shell)
-	fmt.Println("OS:", runtime.GOOS)
 	sys := fmt.Sprintf(sysPrompt, runtime.GOOS, shell)
 
-	res, err := llama.GenerateCompletion(client, sys, userPrompt)
-	done <- true
-	time.Sleep(100 * time.Millisecond)
-	fmt.Print("\r") // Clear spinner
-
+	// generate completion stream
+	var once sync.Once
+	_, err = llama.GenerateCompletionStream(client, sys, userPrompt, func(gr llama.GenerateResponse) error {
+		once.Do(func() {
+			done <- true
+			fmt.Print("\r")
+		})
+		fmt.Print(gr.Response)
+		return nil
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("\033[2J\033[1;1H") // Clear screen and move cursor to top-left corner
-	fmt.Println(res)
+	//fmt.Println("\033[2J\033[1;1H") // Clear screen and move cursor to top-left corner
 }
